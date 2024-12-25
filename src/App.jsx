@@ -1,126 +1,91 @@
-'use client'
-
-import React, { useState, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
+import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
+import { ThemeProvider, createTheme, CssBaseline, Box, IconButton } from '@mui/material';
+import MenuIcon from '@mui/icons-material/Menu';
 import Navbar from './components/Navbar';
-import Sidebar from './components/Sidebar';
-import MainContent from './components/MainContent';
-import OptionsPanel from './components/OptionsPanel';
-import Auth from './components/Auth';
-import Account from './components/Account';
+import TaskSidebar from './components/TaskSidebar';
+import Notifications from './components/Notifications';
+import WelcomePage from './pages/WelcomePage';
+import SignIn from './pages/SignIn';
+import SignUp from './pages/SignUp';
+import Calendar from './pages/Calendar';
+import TaskManager from './pages/TaskManager';
+import Account from './pages/Account';
+import { AuthProvider, useAuth } from './context/AuthContext';
 
-export default function Home() {
-  const [tasks, setTasks] = useState([]);
-  const [user, setUser] = useState(null);
+const theme = createTheme({
+  palette: {
+    primary: {
+      main: '#1976d2',
+    },
+    secondary: {
+      main: '#dc004e',
+    },
+  },
+});
 
-  useEffect(() => {
-    checkAuth();
+const PrivateRoute = ({ children }) => {
+  const { user } = useAuth();
+  return user ? children : <Navigate to="/signin" />;
+};
+
+function AppContent() {
+  const { user } = useAuth();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [tasksUpdated, setTasksUpdated] = useState(false);
+
+  const toggleSidebar = () => {
+    setSidebarOpen(!sidebarOpen);
+  };
+
+  const handleTasksChange = useCallback(() => {
+    setTasksUpdated(prev => !prev);
   }, []);
-  const url = "http://localhost:3000";
-  useEffect(() => {
-    if (user) {
-      fetchTasks();
-    }
-  }, [user]);
-
-  const checkAuth = async () => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      try {
-        const response = await fetch('http://localhost:3000/user', {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
-        if (response.ok) {
-          const userData = await response.json();
-          setUser(userData);
-        } else {
-          localStorage.removeItem('token');
-        }
-      } catch (error) {
-        console.error('Error checking auth:', error);
-      }
-    }
-  };
-
-  const fetchTasks = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(url + '/api/tasks/', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      const data = await response.json();
-      setTasks(data);
-    } catch (error) {
-      console.error('Error fetching tasks:', error);
-    }
-  };
-
-  const addTask = async (newTask) => {
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(url + "/api/tasks/", {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(newTask),
-      });
-      const data = await response.json();
-      setTasks([...tasks, data]);
-    } catch (error) {
-      console.error('Error adding task:', error);
-    }
-  };
-
-  const updateTask = async (id, updatedTask) => {
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(url + `/api/tasks/${id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(updatedTask),
-      });
-      const data = await response.json();
-      setTasks(tasks.map(task => task._id === id ? data : task));
-    } catch (error) {
-      console.error('Error updating task:', error);
-    }
-  };
-
-  const deleteTask = async (id) => {
-    try {
-      const token = localStorage.getItem('token');
-      await fetch(`http://localhost:3000/task/${id}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      setTasks(tasks.filter(task => task._id !== id));
-    } catch (error) {
-      console.error('Error deleting task:', error);
-    }
-  };
-
-  if (!user) {
-    return <Auth setUser={setUser} />;
-  }
 
   return (
-    <div className="dashboard">
-      <Navbar user={user} />
-      <Sidebar tasks={tasks} updateTask={updateTask} user={user} />
-      <MainContent tasks={tasks} addTask={addTask} updateTask={updateTask} deleteTask={deleteTask} />
-      <OptionsPanel addTask={addTask} />
-      <Account user={user} setUser={setUser} />
-    </div>
+    <Router>
+      <Box sx={{ display: 'flex' }}>
+        <Navbar />
+        <Box component="main" sx={{ flexGrow: 1, p: 3 }}>
+          {user && (
+            <IconButton
+              color="inherit"
+              aria-label="open drawer"
+              edge="start"
+              onClick={toggleSidebar}
+              sx={{ position: 'fixed', right: 20, top: 70, zIndex: 1000 }}
+            >
+              <MenuIcon />
+            </IconButton>
+          )}
+        </Box>
+      </Box>
+      <Routes>
+        <Route path="/" element={<WelcomePage />} />
+        <Route path="/signin" element={!user ? <SignIn /> : <Navigate to="/" />} />
+        <Route path="/signup" element={!user ? <SignUp /> : <Navigate to="/" />} />
+        <Route path="/SideBar" element={user ? <TaskSidebar /> : <Navigate to="/signin" />} />
+        <Route path="/Notification" element={user ? <Notifications /> : <Navigate to="/signin" />} />
+        <Route path="/calendar" element={<PrivateRoute><Calendar /></PrivateRoute>} />
+        <Route path="/tasks" element={<PrivateRoute><TaskManager onTasksChange={handleTasksChange} /></PrivateRoute>} />
+        <Route path="/account" element={<PrivateRoute><Account /></PrivateRoute>} />
+      </Routes>
+      {user && <TaskSidebar open={sidebarOpen} onClose={toggleSidebar} key={tasksUpdated} />}
+      {user && <Notifications />}
+    </Router>
   );
 }
+
+function App() {
+  return (
+    <AuthProvider>
+      <ThemeProvider theme={theme}>
+        <CssBaseline />
+        <AppContent />
+      </ThemeProvider>
+    </AuthProvider>
+  );
+}
+
+export default App;
 
