@@ -20,6 +20,7 @@ const SignUp = () => {
   const [error, setError] = useState('');
   const navigate = useNavigate();
   const { login } = useAuth();
+  const url = 'http://localhost:3000';
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -29,7 +30,7 @@ const SignUp = () => {
       return;
     }
     try {
-      const response = await fetch('/api/users/register', {
+      const response = await fetch(url + '/api/users/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, email, password }),
