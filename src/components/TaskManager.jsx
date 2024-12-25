@@ -19,7 +19,9 @@ import {
     DialogTitle,
     DialogContent,
     DialogActions,
+    useTheme
 } from '@mui/material';
+import { getPriorityColor } from '../utils/priorityColors';
 
 const TaskManager = ({ onTasksChange }) => {
     const [tasks, setTasks] = useState([]);
@@ -28,12 +30,15 @@ const TaskManager = ({ onTasksChange }) => {
     const [newTask, setNewTask] = useState({
         title: '',
         priority: 'Low',
-        startDate: '',
-        endDate: '',
+        startDay: '',
+        startTime: '',
+        endDay: '',
+        endTime: '',
         duration: 60,
     });
     const [editingTask, setEditingTask] = useState(null);
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+    const theme = useTheme();
 
     const fetchTasks = async () => {
         setIsLoading(true);
@@ -49,7 +54,7 @@ const TaskManager = ({ onTasksChange }) => {
             }
             const data = await response.json();
             setTasks(data);
-            onTasksChange(); // Notify parent component that tasks have changed
+            onTasksChange();
         } catch (err) {
             setError(err.message);
         } finally {
@@ -91,11 +96,13 @@ const TaskManager = ({ onTasksChange }) => {
             setNewTask({
                 title: '',
                 priority: 'Low',
-                startDate: '',
-                endDate: '',
+                startDay: '',
+                startTime: '00:00',
+                endDay: '',
+                endTime: '23:59',
                 duration: 60,
             });
-            onTasksChange(); // Notify parent component that tasks have changed
+            onTasksChange();
         } catch (err) {
             setError(err.message);
         }
@@ -118,7 +125,7 @@ const TaskManager = ({ onTasksChange }) => {
             const updatedTaskData = await response.json();
             setTasks(prev => prev.map(task => task._id === updatedTaskData._id ? updatedTaskData : task));
             setIsEditDialogOpen(false);
-            onTasksChange(); // Notify parent component that tasks have changed
+            onTasksChange();
         } catch (err) {
             setError(err.message);
         }
@@ -137,7 +144,7 @@ const TaskManager = ({ onTasksChange }) => {
                 throw new Error('Failed to delete task');
             }
             setTasks(prev => prev.filter(task => task._id !== id));
-            onTasksChange(); // Notify parent component that tasks have changed
+            onTasksChange();
         } catch (err) {
             setError(err.message);
         }
@@ -196,10 +203,10 @@ const TaskManager = ({ onTasksChange }) => {
                     <Grid item xs={12} sm={6}>
                         <TextField
                             fullWidth
-                            label="Start Date"
-                            type="datetime-local"
-                            name="startDate"
-                            value={newTask.startDate}
+                            label="Start Day"
+                            type="date"
+                            name="startDay"
+                            value={newTask.startDay}
                             onChange={handleInputChange}
                             InputLabelProps={{
                                 shrink: true,
@@ -210,15 +217,42 @@ const TaskManager = ({ onTasksChange }) => {
                     <Grid item xs={12} sm={6}>
                         <TextField
                             fullWidth
-                            label="End Date"
-                            type="datetime-local"
-                            name="endDate"
-                            value={newTask.endDate}
+                            label="Start Time"
+                            type="time"
+                            name="startTime"
+                            value={newTask.startTime ? newTask.startTime : "00:00"}
+                            onChange={handleInputChange}
+                            InputLabelProps={{
+                                shrink: true,
+                            }}
+                        />
+                    </Grid>
+                    <Grid item xs={12} sm={6}>
+                        <TextField
+                            fullWidth
+                            label="End Day"
+                            type="date"
+                            name="endDay"
+                            value={newTask.endDay}
                             onChange={handleInputChange}
                             InputLabelProps={{
                                 shrink: true,
                             }}
                             required
+                        />
+                    </Grid>
+                    <Grid item xs={12} sm={6}>
+                        <TextField
+                            fullWidth
+                            label="End Time"
+                            type="time"
+                            name="endTime"
+                            value={newTask.endTime ? newTask.endTime : "23:59"}
+                            onChange={handleInputChange}
+                            InputLabelProps={{
+                                shrink: true,
+                            }}
+
                         />
                     </Grid>
                     <Grid item xs={12}>
@@ -246,31 +280,37 @@ const TaskManager = ({ onTasksChange }) => {
                 Sort by Priority
             </Button>
             <Grid container spacing={2}>
-                {tasks.map(task => (
-                    <Grid item xs={12} sm={6} md={4} key={task._id}>
-                        <Card>
-                            <CardContent>
-                                <Typography variant="h6">{task.title}</Typography>
-                                <Typography color="textSecondary">Priority: {task.priority}</Typography>
-                                <Typography color="textSecondary">
-                                    Start: {format(new Date(task.startDate), 'yyyy-MM-dd HH:mm')}
-                                </Typography>
-                                <Typography color="textSecondary">
-                                    End: {format(new Date(task.endDate), 'yyyy-MM-dd HH:mm')}
-                                </Typography>
-                                <Typography color="textSecondary">Duration: {task.duration} minutes</Typography>
-                            </CardContent>
-                            <CardActions>
-                                <Button size="small" color="primary" onClick={() => openEditDialog(task)}>
-                                    Edit
-                                </Button>
-                                <Button size="small" color="secondary" onClick={() => handleDelete(task._id)}>
-                                    Delete
-                                </Button>
-                            </CardActions>
-                        </Card>
-                    </Grid>
-                ))}
+                {tasks.map(task => {
+                    const priorityColor = getPriorityColor(task.priority, theme);
+                    return (
+                        <Grid item xs={12} sm={6} md={4} key={task._id}>
+                            <Card sx={{
+                                backgroundColor: priorityColor.background,
+                                borderLeft: `4px solid ${priorityColor.border}`,
+                            }}>
+                                <CardContent>
+                                    <Typography variant="h6" sx={{ color: priorityColor.text }}>{task.title}</Typography>
+                                    <Typography color="textSecondary">Priority: {task.priority}</Typography>
+                                    <Typography color="textSecondary">
+                                        Start: {format(new Date(task.startDay), 'yyyy-MM-dd')} {task.startTime}
+                                    </Typography>
+                                    <Typography color="textSecondary">
+                                        End: {format(new Date(task.endDay), 'yyyy-MM-dd')} {task.endTime}
+                                    </Typography>
+                                    <Typography color="textSecondary">Duration: {task.duration} minutes</Typography>
+                                </CardContent>
+                                <CardActions>
+                                    <Button size="small" color="primary" onClick={() => openEditDialog(task)}>
+                                        Edit
+                                    </Button>
+                                    <Button size="small" color="secondary" onClick={() => handleDelete(task._id)}>
+                                        Delete
+                                    </Button>
+                                </CardActions>
+                            </Card>
+                        </Grid>
+                    );
+                })}
             </Grid>
 
             <Dialog open={isEditDialogOpen} onClose={() => setIsEditDialogOpen(false)}>
@@ -299,10 +339,10 @@ const TaskManager = ({ onTasksChange }) => {
                     </FormControl>
                     <TextField
                         fullWidth
-                        label="Start Date"
-                        type="datetime-local"
-                        name="startDate"
-                        value={editingTask?.startDate ? format(new Date(editingTask.startDate), "yyyy-MM-dd'T'HH:mm") : ''}
+                        label="Start Day"
+                        type="date"
+                        name="startDay"
+                        value={editingTask?.startDay || ''}
                         onChange={handleEditInputChange}
                         margin="normal"
                         InputLabelProps={{
@@ -312,10 +352,36 @@ const TaskManager = ({ onTasksChange }) => {
                     />
                     <TextField
                         fullWidth
-                        label="End Date"
-                        type="datetime-local"
-                        name="endDate"
-                        value={editingTask?.endDate ? format(new Date(editingTask.endDate), "yyyy-MM-dd'T'HH:mm") : ''}
+                        label="Start Time"
+                        type="time"
+                        name="startTime"
+                        value={editingTask?.startTime || ''}
+                        onChange={handleEditInputChange}
+                        margin="normal"
+                        InputLabelProps={{
+                            shrink: true,
+                        }}
+                        required
+                    />
+                    <TextField
+                        fullWidth
+                        label="End Day"
+                        type="date"
+                        name="endDay"
+                        value={editingTask?.endDay || ''}
+                        onChange={handleEditInputChange}
+                        margin="normal"
+                        InputLabelProps={{
+                            shrink: true,
+                        }}
+                        required
+                    />
+                    <TextField
+                        fullWidth
+                        label="End Time"
+                        type="time"
+                        name="endTime"
+                        value={editingTask?.endTime || ''}
                         onChange={handleEditInputChange}
                         margin="normal"
                         InputLabelProps={{

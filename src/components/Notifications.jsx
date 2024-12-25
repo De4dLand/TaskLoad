@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Snackbar, IconButton } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
+import { format } from 'date-fns';
 
 const Notifications = () => {
   const [open, setOpen] = useState(false);
@@ -19,20 +20,20 @@ const Notifications = () => {
           throw new Error('Failed to fetch tasks');
         }
         const tasks = await response.json();
-
         const now = new Date();
         const endingTasks = tasks.filter(task => {
-          const endTime = new Date(task.endDate);
-          return endTime.toDateString() === now.toDateString() && endTime > now && endTime - now <= 30 * 60 * 1000; // 30 minutes
+          const endDay = new Date(task.endDay);
+          const endTime = task.endTime.split(':');
+          endDay.setHours(parseInt(endTime[0]), parseInt(endTime[1]));
+          return endDay.toDateString() === now.toDateString() && endDay > now && endDay - now <= 30 * 60 * 1000; // 30 minutes
         });
 
         if (endingTasks.length > 0) {
-          setMessage(`You have ${endingTasks.length} task(s) ending in the next 30 minutes!`);
+          const taskList = endingTasks.map(task =>
+            `${task.title} (${format(new Date(task.endDay), 'MMM d')} ${task.endTime})`
+          ).join(', ');
+          setMessage(`Upcoming tasks near Deadlines: ${taskList}`);
           setOpen(true);
-        }
-        else {
-          setMessage(`You have ${endingTasks.length} task(s) met the deadline!`);
-
         }
       } catch (error) {
         console.error('Error checking tasks:', error);
@@ -40,7 +41,7 @@ const Notifications = () => {
     };
 
     checkTasks();
-    const interval = setInterval(checkTasks, 3 * 60 * 1000); // Check every 3 minutes
+    const interval = setInterval(checkTasks, 1 * 60 * 1000); // Check every 1 minutes
 
     return () => clearInterval(interval);
   }, []);

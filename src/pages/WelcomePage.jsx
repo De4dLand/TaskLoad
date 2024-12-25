@@ -10,7 +10,7 @@ const WelcomePage = () => {
     <Container maxWidth="sm" sx={{ py: 8 }}>
       <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
         <Typography variant="h2" component="h1" gutterBottom>
-          Welcome to TaskMaster
+          Welcome to TaskLoad
         </Typography>
         <Typography variant="h5" component="h2" gutterBottom>
           Your personal task management solution

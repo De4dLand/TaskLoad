@@ -2,6 +2,7 @@ import React from 'react';
 import { Link as RouterLink } from 'react-router-dom';
 import { AppBar, Toolbar, Typography, Button, Box } from '@mui/material';
 import { useAuth } from '../context/AuthContext';
+import NotificationCenter from './NotificationCenter';
 
 const Navbar = () => {
   const { user, logout } = useAuth();
@@ -26,6 +27,7 @@ const Navbar = () => {
               <Button color="inherit" component={RouterLink} to="/account">
                 Account
               </Button>
+              <NotificationCenter />
               <Button color="inherit" onClick={logout}>
                 Logout
               </Button>

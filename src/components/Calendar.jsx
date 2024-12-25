@@ -1,55 +1,41 @@
-import 'bootstrap/dist/css/bootstrap.min.css';
 import React from 'react';
-import { format, startOfWeek, addDays } from 'date-fns';
-import { Paper, Typography, Grid, Box, Button } from '@mui/material';
+import { format, startOfWeek, addDays, isSameDay, isWithinInterval, parseISO } from 'date-fns';
+import { Paper, Typography, Grid, Box, Button, useTheme } from '@mui/material';
+import { getPriorityColor } from '../utils/priorityColors';
 
 const Calendar = ({ tasks, currentDate, onPrevWeek, onNextWeek }) => {
-  // Generate time slots from 8:00 to 16:30 in 30-minute intervals
-  const timeSlots = Array.from({ length: 48 }, (_, i) => {
-    const hour = Math.floor(i / 2);
-    const minutes = i % 2 === 0 ? '00' : '30';
-    return `${hour.toString().padStart(2, '0')}:${minutes}`;
-  });
+  const theme = useTheme();
 
-  // Generate weekdays (Sunday to Thursday)
+  const hours = Array.from({ length: 24 }, (_, i) => i);
+
   const weekStart = startOfWeek(currentDate);
-  const weekDays = Array.from({ length: 5 }, (_, index) => {
+  const weekDays = Array.from({ length: 7 }, (_, index) => {
     const date = addDays(weekStart, index);
     return {
-      name: format(date, 'EEEE'),
+      name: format(date, 'EEE'),
       date: date,
     };
   });
 
-  // Helper function to get task position and span
-  const getTaskPosition = (task) => {
-    const startTime = new Date(task.startDate);
-    const endTime = new Date(task.endDate);
+  const getTaskPosition = (task, day) => {
+    const startDay = parseISO(task.startDay);
+    const endDay = parseISO(task.endDay);
+    const dayStart = new Date(day);
+    dayStart.setHours(0, 0, 0, 0);
+    const dayEnd = new Date(day);
+    dayEnd.setHours(23, 59, 59, 999);
 
-    const startHour = startTime.getHours();
-    const startMinutes = startTime.getMinutes();
-    const endHour = endTime.getHours();
-    const endMinutes = endTime.getMinutes();
+    const taskStart = isWithinInterval(startDay, { start: dayStart, end: dayEnd }) ? startDay : dayStart;
+    const taskEnd = isWithinInterval(endDay, { start: dayStart, end: dayEnd }) ? endDay : dayEnd;
 
-    const startIndex = (startHour) * 2 + (startMinutes >= 30 ? 1 : 0);
-    const endIndex = (endHour) * 2 + (endMinutes >= 30 ? 1 : 0);
-    const span = endIndex - startIndex + 1;
+    const [startHour, startMinute] = task.startTime.split(':').map(Number);
+    const [endHour, endMinute] = task.endTime.split(':').map(Number);
 
-    return { startIndex, span };
-  };
+    const startPosition = startHour + startMinute / 60;
+    const endPosition = endHour + endMinute / 60;
+    const duration = endPosition - startPosition;
 
-  // Helper function to get priority color
-  const getPriorityColor = (priority) => {
-    switch (priority.toLowerCase()) {
-      case 'high':
-        return '#f44336';
-      case 'medium':
-        return '#ff9800';
-      case 'low':
-        return '#4caf50';
-      default:
-        return '#2196f3';
-    }
+    return { startPosition, duration };
   };
 
   return (
@@ -59,19 +45,19 @@ const Calendar = ({ tasks, currentDate, onPrevWeek, onNextWeek }) => {
           Previous Week
         </Button>
         <Typography variant="h6">
-          {format(weekStart, 'MMMM d, yyyy')} - {format(addDays(weekStart, 4), 'MMMM d, yyyy')}
+          {format(weekStart, 'MMMM d, yyyy')} - {format(addDays(weekStart, 6), 'MMMM d, yyyy')}
         </Typography>
         <Button onClick={onNextWeek} variant="outlined">
           Next Week
         </Button>
       </Box>
       <Grid container>
-        <Grid item xs={2}>
-          <Typography variant="subtitle1" sx={{ p: 1, fontWeight: 'bold' }}>Time</Typography>
+        <Grid item xs={1}>
+          <Typography variant="subtitle2" sx={{ p: 1, fontWeight: 'bold' }}>Time</Typography>
         </Grid>
         {weekDays.map((day, index) => (
-          <Grid item xs={2} key={index}>
-            <Typography variant="subtitle1" sx={{ p: 1, fontWeight: 'bold', textAlign: 'center' }}>
+          <Grid item xs={1.5} key={index}>
+            <Typography variant="subtitle2" sx={{ p: 1, fontWeight: 'bold', textAlign: 'center' }}>
               {day.name}
               <br />
               <Typography variant="caption">{format(day.date, 'MMM d')}</Typography>
@@ -80,42 +66,40 @@ const Calendar = ({ tasks, currentDate, onPrevWeek, onNextWeek }) => {
         ))}
       </Grid>
 
-      {timeSlots.map((time, timeIndex) => (
-        <Grid container key={timeIndex}>
-          <Grid item xs={2}>
-            <Typography variant="body2" sx={{ p: 1 }}>{time}</Typography>
+      {hours.map((hour) => (
+        <Grid container key={hour} sx={{ borderTop: '1px solid #e0e0e0', minHeight: '60px' }}>
+          <Grid item xs={1}>
+            <Typography variant="body2" sx={{ p: 1 }}>{`${hour.toString().padStart(2, '0')}:00`}</Typography>
           </Grid>
           {weekDays.map((day, dayIndex) => (
-            <Grid item xs={2} key={`${timeIndex}-${dayIndex}`} sx={{ position: 'relative', height: '40px', borderTop: '1px solid #e0e0e0' }}>
+            <Grid item xs={1.5} key={`${hour}-${dayIndex}`} sx={{ position: 'relative', height: '60px' }}>
               {tasks.map((task, taskIndex) => {
-                const taskDate = new Date(task.startDate);
-                if (taskDate.toDateString() === day.date.toDateString()) {
-                  const { startIndex, span } = getTaskPosition(task);
-
-                  if (startIndex === timeIndex) {
-                    return (
-                      <Box
-                        key={taskIndex}
-                        sx={{
-                          position: 'absolute',
-                          left: '2px',
-                          right: '2px',
-                          top: '2px',
-                          height: `${span * 40 - 4}px`,
-                          backgroundColor: getPriorityColor(task.priority),
-                          color: 'white',
-                          padding: '2px',
-                          fontSize: '0.75rem',
-                          overflow: 'hidden',
-                          zIndex: 10,
-                        }}
-                      >
-                        <Typography variant="caption" sx={{ fontWeight: 'bold' }}>
-                          {task.title}
-                        </Typography>
-                      </Box>
-                    );
-                  }
+                const { startPosition, duration } = getTaskPosition(task, day.date);
+                if (Math.floor(startPosition) === hour && isSameDay(parseISO(task.startDay), day.date)) {
+                  const priorityColor = getPriorityColor(task.priority, theme);
+                  return (
+                    <Box
+                      key={taskIndex}
+                      sx={{
+                        position: 'absolute',
+                        left: '2px',
+                        right: '2px',
+                        top: `${(startPosition % 1) * 60}px`,
+                        height: `${duration * 60}px`,
+                        backgroundColor: priorityColor.background,
+                        borderLeft: `3px solid ${priorityColor.border}`,
+                        color: priorityColor.text,
+                        padding: '2px',
+                        fontSize: '0.75rem',
+                        overflow: 'hidden',
+                        zIndex: 10,
+                      }}
+                    >
+                      <Typography variant="caption" sx={{ fontWeight: 'bold' }}>
+                        {task.title}
+                      </Typography>
+                    </Box>
+                  );
                 }
                 return null;
               })}

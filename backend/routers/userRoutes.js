@@ -1,15 +1,14 @@
 import express from 'express';
 import User from '../models/user_model.js';
 import jwt from 'jsonwebtoken';
-import cors from 'cors';
-import 'dotenv/config';
+import auth from '../auth.js';
+
 const router = express.Router();
-router.use(cors());
+
 router.post('/register', async (req, res) => {
   try {
     const { username, email, password } = req.body;
 
-    // Check if user already exists
     const existingUser = await User.findOne({ $or: [{ email }, { username }] });
     if (existingUser) {
       return res.status(400).json({ message: 'User already exists' });
@@ -18,7 +17,7 @@ router.post('/register', async (req, res) => {
     const user = new User({ username, email, password });
     await user.save();
 
-    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET);
+    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn: '1d' });
     res.status(201).json({ user: { id: user._id, username: user.username, email: user.email }, token });
   } catch (error) {
     console.error('Registration error:', error);
@@ -37,7 +36,7 @@ router.post('/login', async (req, res) => {
     if (!isPasswordMatch) {
       return res.status(401).json({ message: 'Invalid email or password' });
     }
-    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET);
+    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn: '1d' });
     res.json({ user: { id: user._id, username: user.username, email: user.email }, token });
   } catch (error) {
     console.error('Login error:', error);
@@ -45,7 +44,25 @@ router.post('/login', async (req, res) => {
   }
 });
 
+router.post('/refresh-token', auth, async (req, res) => {
+  try {
+    const token = jwt.sign({ userId: req.user._id }, process.env.JWT_SECRET, { expiresIn: '1d' });
+    res.json({ token });
+  } catch (error) {
+    res.status(500).json({ message: 'Error refreshing token' });
+  }
+});
+router.get('/me', auth, async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id).select('-password');
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    res.json(user);
+  } catch (error) {
+    console.error('Error fetching user:', error);
+    res.status(500).json({ message: 'Server error while fetching user data' });
+  }
+});
 export default router;
-
-
 
