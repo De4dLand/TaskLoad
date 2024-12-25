@@ -19,12 +19,15 @@ import {
     DialogTitle,
     DialogContent,
     DialogActions,
-    useTheme
+    useTheme,
+    Box
 } from '@mui/material';
 import { getPriorityColor } from '../utils/priorityColors';
+import SearchTask from './SearchTask';
 
 const TaskManager = ({ onTasksChange }) => {
     const [tasks, setTasks] = useState([]);
+    const [filteredTasks, setFilteredTasks] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
     const [newTask, setNewTask] = useState({
@@ -38,6 +41,8 @@ const TaskManager = ({ onTasksChange }) => {
     });
     const [editingTask, setEditingTask] = useState(null);
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+    const [priorityFilter, setPriorityFilter] = useState('All');
+    const [statusFilter, setStatusFilter] = useState(false);
     const theme = useTheme();
 
     const fetchTasks = async () => {
@@ -54,10 +59,10 @@ const TaskManager = ({ onTasksChange }) => {
             }
             const data = await response.json();
             setTasks(data);
-            onTasksChange();
+            setFilteredTasks(data);
+            setIsLoading(false);
         } catch (err) {
             setError(err.message);
-        } finally {
             setIsLoading(false);
         }
     };
@@ -97,9 +102,9 @@ const TaskManager = ({ onTasksChange }) => {
                 title: '',
                 priority: 'Low',
                 startDay: '',
-                startTime: '00:00',
+                startTime: '',
                 endDay: '',
-                endTime: '23:59',
+                endTime: '',
                 duration: 60,
             });
             onTasksChange();
@@ -150,14 +155,20 @@ const TaskManager = ({ onTasksChange }) => {
         }
     };
 
-    const handleSort = () => {
-        const sortedTasks = [...tasks].sort((a, b) => {
-            const priorityOrder = { High: 3, Medium: 2, Low: 1 };
-            return priorityOrder[b.priority] - priorityOrder[a.priority];
-        });
-        setTasks(sortedTasks);
+    const handleSearch = (searchTerm) => {
+        const filtered = tasks.filter(task =>
+            task.title.toLowerCase().includes(searchTerm.toLowerCase()) &&
+            (priorityFilter === 'All' || task.priority === priorityFilter)
+        );
+        setFilteredTasks(filtered);
     };
-
+    const handlePriorityFilter = (priority) => {
+        setPriorityFilter(priority);
+        const filtered = tasks.filter(task =>
+            (priority === 'All' || task.priority === priority)
+        );
+        setFilteredTasks(filtered);
+    };
     const openEditDialog = (task) => {
         setEditingTask(task);
         setIsEditDialogOpen(true);
@@ -171,9 +182,11 @@ const TaskManager = ({ onTasksChange }) => {
         return <Alert severity="error">{error}</Alert>;
     }
 
+    const displayTasks = filteredTasks.length > 0 ? filteredTasks : tasks;
+
     return (
         <Paper elevation={3} sx={{ p: 3 }}>
-            <Typography variant="h5" gutterBottom>Add New Task</Typography>
+            <Typography variant="h6" gutterBottom>Add New Task</Typography>
             <form onSubmit={handleSubmit}>
                 <Grid container spacing={2}>
                     <Grid item xs={12} sm={6}>
@@ -220,11 +233,12 @@ const TaskManager = ({ onTasksChange }) => {
                             label="Start Time"
                             type="time"
                             name="startTime"
-                            value={newTask.startTime ? newTask.startTime : "00:00"}
+                            value={newTask.startTime}
                             onChange={handleInputChange}
                             InputLabelProps={{
                                 shrink: true,
                             }}
+                            required
                         />
                     </Grid>
                     <Grid item xs={12} sm={6}>
@@ -247,12 +261,12 @@ const TaskManager = ({ onTasksChange }) => {
                             label="End Time"
                             type="time"
                             name="endTime"
-                            value={newTask.endTime ? newTask.endTime : "23:59"}
+                            value={newTask.endTime}
                             onChange={handleInputChange}
                             InputLabelProps={{
                                 shrink: true,
                             }}
-
+                            required
                         />
                     </Grid>
                     <Grid item xs={12}>
@@ -275,12 +289,27 @@ const TaskManager = ({ onTasksChange }) => {
                 </Grid>
             </form>
 
-            <Typography variant="h5" gutterBottom sx={{ mt: 4 }}>Task List</Typography>
-            <Button onClick={handleSort} variant="outlined" color="primary" sx={{ mb: 2 }}>
-                Sort by Priority
-            </Button>
+            <Typography variant="h6" gutterBottom sx={{ mt: 4 }}>Task List</Typography>
+            <Typography variant="h5" gutterBottom>Task Manager</Typography>
+            <Box sx={{ mb: 2 }}>
+                <SearchTask onSearch={handleSearch} />
+            </Box>
+            <Box sx={{ mb: 2 }}>
+                <FormControl fullWidth>
+                    <InputLabel>Filter by Priority</InputLabel>
+                    <Select
+                        value={priorityFilter}
+                        onChange={(e) => handlePriorityFilter(e.target.value)}
+                    >
+                        <MenuItem value="All">All</MenuItem>
+                        <MenuItem value="Low">Low</MenuItem>
+                        <MenuItem value="Medium">Medium</MenuItem>
+                        <MenuItem value="High">High</MenuItem>
+                    </Select>
+                </FormControl>
+            </Box>
             <Grid container spacing={2}>
-                {tasks.map(task => {
+                {displayTasks.map(task => {
                     const priorityColor = getPriorityColor(task.priority, theme);
                     return (
                         <Grid item xs={12} sm={6} md={4} key={task._id}>
@@ -298,6 +327,7 @@ const TaskManager = ({ onTasksChange }) => {
                                         End: {format(new Date(task.endDay), 'yyyy-MM-dd')} {task.endTime}
                                     </Typography>
                                     <Typography color="textSecondary">Duration: {task.duration} minutes</Typography>
+                                    <Typography color="textSecondary">Completed: {task.completed ? 'Yes' : 'No'}</Typography>
                                 </CardContent>
                                 <CardActions>
                                     <Button size="small" color="primary" onClick={() => openEditDialog(task)}>

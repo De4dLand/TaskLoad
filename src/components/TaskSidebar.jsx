@@ -7,7 +7,9 @@ import {
   ListItemIcon,
   Typography,
   CircularProgress,
-  useTheme
+  useTheme,
+  Checkbox,
+  IconButton
 } from '@mui/material';
 import {
   FlagOutlined as LowPriority,
@@ -15,47 +17,67 @@ import {
   FlagRounded as HighPriority
 } from '@mui/icons-material';
 import { getPriorityColor } from '../utils/priorityColors';
-import { format } from 'date-fns';
-
+import { format, parseISO } from 'date-fns';
 const priorityIcons = {
   Low: <LowPriority />,
   Medium: <MediumPriority />,
   High: <HighPriority />
 };
 
-const TaskSidebar = ({ open, onClose }) => {
+const TaskSidebar = ({ open, onClose, onTasksChange }) => {
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const theme = useTheme();
 
-  useEffect(() => {
-    const fetchTasks = async () => {
-      try {
-        const token = localStorage.getItem('token');
-        const response = await fetch('http://localhost:3000/api/tasks', {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
-        if (!response.ok) {
-          throw new Error('Failed to fetch tasks');
+  const fetchTasks = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('http://localhost:3000/api/tasks', {
+        headers: {
+          'Authorization': `Bearer ${token}`
         }
-        const data = await response.json();
-        const sortedTasks = data.sort((a, b) => {
-          const priorityOrder = { High: 3, Medium: 2, Low: 1 };
-          return priorityOrder[b.priority] - priorityOrder[a.priority];
-        });
-        setTasks(sortedTasks);
-        setLoading(false);
-      } catch (err) {
-        setError(err.message);
-        setLoading(false);
+      });
+      if (!response.ok) {
+        throw new Error('Failed to fetch tasks');
       }
-    };
+      const data = await response.json();
+      const sortedTasks = data.sort((a, b) => {
+        const priorityOrder = { High: 3, Medium: 2, Low: 1 };
+        return priorityOrder[b.priority] - priorityOrder[a.priority];
+      });
+      setTasks(sortedTasks);
+      setLoading(false);
+    } catch (err) {
+      setError(err.message);
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchTasks();
   }, []);
+
+  const handleMarkCompleted = async (taskId, completed) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`http://localhost:3000/api/tasks/${taskId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ completed })
+      });
+      if (!response.ok) {
+        throw new Error('Failed to update task');
+      }
+      await fetchTasks();
+      onTasksChange();
+    } catch (err) {
+      console.error('Error updating task:', err);
+    }
+  };
 
   return (
     <Drawer anchor="right" open={open} onClose={onClose}>
@@ -91,10 +113,15 @@ const TaskSidebar = ({ open, onClose }) => {
                         <Typography component="span" variant="body2" color="text.primary">
                           {task.priority}
                         </Typography>
-                        {` — ${format(new Date(task.startDay), 'MMM dd')} ${task.startTime}`}
+                        {` — ${format(parseISO(task.startDay), 'MMM d')} ${task.startTime}`}
                       </>
                     }
                     primaryTypographyProps={{ color: priorityColor.text }}
+                  />
+                  <Checkbox
+                    checked={task.completed}
+                    onChange={(e) => handleMarkCompleted(task._id, e.target.checked)}
+                    color="primary"
                   />
                 </ListItem>
               );
