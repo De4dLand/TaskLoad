@@ -5,7 +5,6 @@ import MenuIcon from '@mui/icons-material/Menu';
 import Navbar from './components/Navbar';
 import TaskSidebar from './components/TaskSidebar';
 import Notifications from './components/Notifications';
-import WelcomePage from './pages/WelcomePage';
 import SignIn from './pages/SignIn';
 import SignUp from './pages/SignUp';
 import Calendar from './pages/Calendar';
@@ -106,7 +105,6 @@ function AppContent() {
         </Box>
       </Box>
       <Routes>
-        <Route path="/" element={<WelcomePage />} />
         <Route path="/" element={user ? <Navigate to="/dashboard" /> : <LandingPage />} />
         <Route
           path="/dashboard"
