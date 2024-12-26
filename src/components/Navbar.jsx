@@ -9,25 +9,26 @@ const Navbar = () => {
 
   return (
     <AppBar position="static">
-      <Toolbar>
-        <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
+      <Toolbar sx={{ justifyContent: 'space-between' }}>
+        <Box sx={{ width: '200px' }}>
+
+        </Box>
+
+        <Typography variant="h6" component="div" sx={{ textAlign: 'center' }}>
           <RouterLink to="/" style={{ color: 'white', textDecoration: 'none' }}>
-            TaskMaster
+            TaskLoad
           </RouterLink>
         </Typography>
-        <Box>
+
+        <Box sx={{ width: '200px', display: 'flex', justifyContent: 'flex-end' }}>
           {user ? (
             <>
-              <Button color="inherit" component={RouterLink} to="/calendar">
-                Calendar
-              </Button>
-              <Button color="inherit" component={RouterLink} to="/tasks">
-                Tasks
-              </Button>
+              {user && (
+                <NotificationCenter />
+              )}
               <Button color="inherit" component={RouterLink} to="/account">
                 Account
               </Button>
-              <NotificationCenter />
               <Button color="inherit" onClick={logout}>
                 Logout
               </Button>

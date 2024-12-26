@@ -1,7 +1,9 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Container, Typography, TextField, Button, Box, Alert } from '@mui/material';
+import { Container, Typography, TextField, Button, Box, Alert, Stack } from '@mui/material';
 import { useAuth } from '../context/AuthContext';
+import notificationSound from '../assets/notification-sound.mp3';
+
 
 const Account = () => {
   const { user, logout, error } = useAuth();
@@ -19,6 +21,12 @@ const Account = () => {
     } catch (error) {
       console.error(error);
     }
+  };
+  const handleTestAlarm = () => {
+    const audio = new Audio(notificationSound);
+    audio.play().catch(error => {
+      console.error('Error playing sound:', error);
+    });
   };
 
   return (
@@ -54,15 +62,24 @@ const Account = () => {
             readOnly: true,
           }}
         />
-        <Button
-          fullWidth
-          variant="contained"
-          color="secondary"
-          sx={{ mt: 3, mb: 2 }}
-          onClick={handleLogout}
-        >
-          Logout
-        </Button>
+        <Stack spacing={2} sx={{ mt: 3 }}>
+          <Button
+            fullWidth
+            variant="contained"
+            color="primary"
+            onClick={handleTestAlarm}
+          >
+            Test Alarm Sound
+          </Button>
+          <Button
+            fullWidth
+            variant="contained"
+            color="secondary"
+            onClick={handleLogout}
+          >
+            Logout
+          </Button>
+        </Stack>
       </Box>
     </Container>
   );

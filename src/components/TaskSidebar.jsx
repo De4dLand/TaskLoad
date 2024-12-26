@@ -9,7 +9,17 @@ import {
   CircularProgress,
   useTheme,
   Checkbox,
-  IconButton
+  Button,
+  TextField,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
+  Box,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions
 } from '@mui/material';
 import {
   FlagOutlined as LowPriority,
@@ -17,17 +27,20 @@ import {
   FlagRounded as HighPriority
 } from '@mui/icons-material';
 import { getPriorityColor } from '../utils/priorityColors';
-import { format, parseISO } from 'date-fns';
+import { format } from 'date-fns';
+
 const priorityIcons = {
   Low: <LowPriority />,
   Medium: <MediumPriority />,
   High: <HighPriority />
 };
 
-const TaskSidebar = ({ open, onClose, onTasksChange }) => {
+const TaskSidebar = ({ open, onClose, onTasksChange = () => { } }) => {
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [selectedTask, setSelectedTask] = useState(null);
+  const [isUpdateDialogOpen, setIsUpdateDialogOpen] = useState(false);
   const theme = useTheme();
 
   const fetchTasks = async () => {
@@ -43,8 +56,11 @@ const TaskSidebar = ({ open, onClose, onTasksChange }) => {
       }
       const data = await response.json();
       const sortedTasks = data.sort((a, b) => {
-        const priorityOrder = { High: 3, Medium: 2, Low: 1 };
-        return priorityOrder[b.priority] - priorityOrder[a.priority];
+        if (a.completed === b.completed) {
+          const priorityOrder = { High: 3, Medium: 2, Low: 1 };
+          return priorityOrder[b.priority] - priorityOrder[a.priority];
+        }
+        return a.completed ? 1 : -1;
       });
       setTasks(sortedTasks);
       setLoading(false);
@@ -62,7 +78,7 @@ const TaskSidebar = ({ open, onClose, onTasksChange }) => {
     try {
       const token = localStorage.getItem('token');
       const response = await fetch(`http://localhost:3000/api/tasks/${taskId}`, {
-        method: 'PUT',
+        method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
@@ -79,9 +95,41 @@ const TaskSidebar = ({ open, onClose, onTasksChange }) => {
     }
   };
 
+  const handleTaskClick = (task) => {
+    setSelectedTask(task);
+    setIsUpdateDialogOpen(true);
+  };
+
+  const handleUpdateTask = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`http://localhost:3000/api/tasks/${selectedTask._id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(selectedTask)
+      });
+      if (!response.ok) {
+        throw new Error('Failed to update task');
+      }
+      await fetchTasks();
+      onTasksChange();
+      setIsUpdateDialogOpen(false);
+    } catch (err) {
+      console.error('Error updating task:', err);
+    }
+  };
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setSelectedTask(prev => ({ ...prev, [name]: value }));
+  };
+
   return (
     <Drawer anchor="right" open={open} onClose={onClose}>
-      <div style={{ width: 250, padding: '20px' }}>
+      <div style={{ width: 300, padding: '20px' }}>
         <Typography variant="h6" gutterBottom>
           Tasks by Priority
         </Typography>
@@ -101,7 +149,9 @@ const TaskSidebar = ({ open, onClose, onTasksChange }) => {
                     borderLeft: `4px solid ${priorityColor.border}`,
                     mb: 1,
                     borderRadius: 1,
+                    cursor: 'pointer'
                   }}
+                  onClick={() => handleTaskClick(task)}
                 >
                   <ListItemIcon sx={{ color: priorityColor.border }}>
                     {priorityIcons[task.priority]}
@@ -113,14 +163,15 @@ const TaskSidebar = ({ open, onClose, onTasksChange }) => {
                         <Typography component="span" variant="body2" color="text.primary">
                           {task.priority}
                         </Typography>
-                        {` — ${format(parseISO(task.startDay), 'MMM d')} ${task.startTime}`}
+                        {` — ${format(new Date(task.startDay), 'MMM d')} ${task.startTime}`}
+                        {` — ${format(new Date(task.endDay), 'MMM d')} ${task.endTime}`}
                       </>
                     }
-                    primaryTypographyProps={{ color: priorityColor.text }}
                   />
                   <Checkbox
                     checked={task.completed}
                     onChange={(e) => handleMarkCompleted(task._id, e.target.checked)}
+                    onClick={(e) => e.stopPropagation()}
                     color="primary"
                   />
                 </ListItem>
@@ -129,6 +180,80 @@ const TaskSidebar = ({ open, onClose, onTasksChange }) => {
           </List>
         )}
       </div>
+      <Dialog open={isUpdateDialogOpen} onClose={() => setIsUpdateDialogOpen(false)}>
+        <DialogTitle>Update Task</DialogTitle>
+        <DialogContent>
+          <Box component="form" sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 2 }}>
+            <TextField
+              label="Title"
+              name="title"
+              value={selectedTask?.title || ''}
+              onChange={handleInputChange}
+              fullWidth
+            />
+            <FormControl fullWidth>
+              <InputLabel>Priority</InputLabel>
+              <Select
+                name="priority"
+                value={selectedTask?.priority || ''}
+                onChange={handleInputChange}
+              >
+                <MenuItem value="Low">Low</MenuItem>
+                <MenuItem value="Medium">Medium</MenuItem>
+                <MenuItem value="High">High</MenuItem>
+              </Select>
+            </FormControl>
+            <TextField
+              label="Start Day"
+              name="startDay"
+              type="date"
+              value={selectedTask?.startDay?.split('T')[0] || ''}
+              onChange={handleInputChange}
+              fullWidth
+              InputLabelProps={{ shrink: true }}
+            />
+            <TextField
+              label="Start Time"
+              name="startTime"
+              type="time"
+              value={selectedTask?.startTime || ''}
+              onChange={handleInputChange}
+              fullWidth
+              InputLabelProps={{ shrink: true }}
+            />
+            <TextField
+              label="End Day"
+              name="endDay"
+              type="date"
+              value={selectedTask?.endDay?.split('T')[0] || ''}
+              onChange={handleInputChange}
+              fullWidth
+              InputLabelProps={{ shrink: true }}
+            />
+            <TextField
+              label="End Time"
+              name="endTime"
+              type="time"
+              value={selectedTask?.endTime || ''}
+              onChange={handleInputChange}
+              fullWidth
+              InputLabelProps={{ shrink: true }}
+            />
+            <TextField
+              label="Duration (minutes)"
+              name="duration"
+              type="number"
+              value={selectedTask?.duration || ''}
+              onChange={handleInputChange}
+              fullWidth
+            />
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setIsUpdateDialogOpen(false)}>Cancel</Button>
+          <Button onClick={handleUpdateTask} color="primary">Update</Button>
+        </DialogActions>
+      </Dialog>
     </Drawer>
   );
 };

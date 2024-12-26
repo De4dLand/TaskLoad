@@ -1,33 +1,69 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { Drawer, List, ListItem, ListItemIcon, ListItemText, Typography, Box } from '@mui/material';
+import { Link } from 'react-router-dom';
+import DashboardIcon from '@mui/icons-material/Dashboard';
+import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
+import AssignmentIcon from '@mui/icons-material/Assignment';
+import TimelineIcon from '@mui/icons-material/Timeline';
 
-const Sidebar = ({ tasks, updateTask, user }) => (
-  <aside className="sidebar bg-gray-100 p-4 w-64">
-    <h2 className="sidebar-title text-xl font-bold mb-4">Welcome, {user.username}</h2>
-    <h3 className="text-lg font-semibold mt-6 mb-2">Your Tasks</h3>
-    {tasks.length === 0 ? (
-      <p className="text-gray-500">No tasks yet. Add some tasks to get started!</p>
-    ) : (
-      <ul className="space-y-2">
-        {tasks.map(task => (
-          <li key={task._id} className="task-card bg-white p-2 rounded shadow">
-            <div className="flex justify-between items-center">
-              <span className={`task-priority priority-${task.priority} px-2 py-1 rounded text-xs font-semibold`}>
-                {task.priority}
-              </span>
-              <h4 className="font-medium mt-1">{task.title}</h4>
-              <input
-                type="checkbox"
-                checked={task.completed}
-                onChange={() => updateTask(task._id, { completed: !task.completed })}
-                className="form-checkbox h-5 w-5 text-blue-600 justify-content-end"
-              />
-            </div>
-          </li>
-        ))}
-      </ul>
-    )}
-  </aside>
-);
+const Sidebar = ({ onPageChange, open }) => {
+  const [isHovered, setIsHovered] = useState(false);
+
+  const handleMouseEnter = () => {
+    setIsHovered(true);
+  };
+
+  const handleMouseLeave = () => {
+    setIsHovered(false);
+  };
+
+  const menuItems = [
+    { text: 'Dashboard', icon: <DashboardIcon />, path: '/dashboard' },
+    { text: 'Task Center', icon: <AssignmentIcon />, path: '/task-center' },
+    { text: 'Calendar', icon: <CalendarTodayIcon />, path: '/calendar' },
+    { text: 'Task Manager', icon: <AssignmentIcon />, path: '/tasks' },
+    { text: 'Time Tracker', icon: <TimelineIcon />, path: '/time-tracker' },
+  ];
+
+  return (
+    <Drawer
+      anchor="left"
+      open={open || isHovered}
+      variant="permanent"
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+      sx={{
+        width: isHovered ? 240 : 60,
+        flexShrink: 0,
+        '& .MuiDrawer-paper': {
+          width: isHovered ? 240 : 60,
+          boxSizing: 'border-box',
+          transition: 'width 0.2s ease-in-out',
+          overflowX: 'hidden'
+        },
+      }}
+    >
+      <Box sx={{ overflow: 'auto' }}>
+        <Typography variant="h6" sx={{ p: 2 }}>
+        </Typography>
+        <List>
+          {menuItems.map((item) => (
+            <ListItem
+              button
+              key={item.text}
+              component={Link}
+              to={item.path}
+              onClick={() => onPageChange(item.path)}
+            >
+              <ListItemIcon>{item.icon}</ListItemIcon>
+              <ListItemText primary={item.text} />
+            </ListItem>
+          ))}
+        </List>
+      </Box>
+    </Drawer>
+  );
+};
 
 export default Sidebar;
 

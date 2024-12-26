@@ -42,7 +42,6 @@ const TaskManager = ({ onTasksChange }) => {
     const [editingTask, setEditingTask] = useState(null);
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
     const [priorityFilter, setPriorityFilter] = useState('All');
-    const [statusFilter, setStatusFilter] = useState(false);
     const theme = useTheme();
 
     const fetchTasks = async () => {
