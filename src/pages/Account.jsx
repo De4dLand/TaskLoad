@@ -3,17 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import { Container, Typography, TextField, Button, Box, Alert, Stack } from '@mui/material';
 import { useAuth } from '../context/AuthContext';
 import notificationSound from '../assets/notification-sound.mp3';
-
-
 const Account = () => {
   const { user, logout, error } = useAuth();
   const navigate = useNavigate();
-
   if (!user) {
     navigate('/auth');
     return null;
   }
-
   const handleLogout = async () => {
     try {
       await logout();
@@ -28,7 +24,6 @@ const Account = () => {
       console.error('Error playing sound:', error);
     });
   };
-
   return (
     <Container maxWidth="sm">
       {error && (
@@ -37,19 +32,16 @@ const Account = () => {
         </Alert>
       )}
       <Typography variant="h4" component="h1" gutterBottom sx={{ mt: 4 }}>
-        Account Information
+        Thông Tin Tài Khoản
       </Typography>
       <Box component="form" noValidate sx={{ mt: 1 }}>
         <TextField
           margin="normal"
           fullWidth
           id="username"
-          label="Username"
+          label="Tên Tài Khoản"
           name="username"
           value={user.username}
-          InputProps={{
-            readOnly: true,
-          }}
         />
         <TextField
           margin="normal"
@@ -58,9 +50,6 @@ const Account = () => {
           label="Email"
           name="email"
           value={user.email}
-          InputProps={{
-            readOnly: true,
-          }}
         />
         <Stack spacing={2} sx={{ mt: 3 }}>
           <Button
@@ -69,7 +58,7 @@ const Account = () => {
             color="primary"
             onClick={handleTestAlarm}
           >
-            Test Alarm Sound
+            Thử Chuông Thông Báo
           </Button>
           <Button
             fullWidth
@@ -77,7 +66,7 @@ const Account = () => {
             color="secondary"
             onClick={handleLogout}
           >
-            Logout
+            Đăng Xuất
           </Button>
         </Stack>
       </Box>

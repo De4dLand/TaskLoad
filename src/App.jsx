@@ -17,6 +17,7 @@ import TimeTracker from './components/TimeTracker';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import NotificationCenter from './components/NotificationCenter';
 import Sidebar from './components/Sidebar';
+import LandingPage from './pages/LandingPage';
 const theme = createTheme({
   palette: {
     primary: {
@@ -106,6 +107,7 @@ function AppContent() {
       </Box>
       <Routes>
         <Route path="/" element={<WelcomePage />} />
+        <Route path="/" element={user ? <Navigate to="/dashboard" /> : <LandingPage />} />
         <Route
           path="/dashboard"
           element={
