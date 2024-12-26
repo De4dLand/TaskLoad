@@ -15,7 +15,7 @@ import {
 } from '@mui/material';
 import StarIcon from '@mui/icons-material/Star';
 import StarBorderIcon from '@mui/icons-material/StarBorder';
-import { format, differenceInMinutes } from 'date-fns';
+import { format, differenceInDays } from 'date-fns';
 
 const TaskCenter = () => {
   const [tasks, setTasks] = useState([]);
@@ -77,18 +77,14 @@ const TaskCenter = () => {
 
   const calculateRemainingTime = (task) => {
     const now = new Date();
-    const endTime = new Date(`${task.endDay}T${task.endTime}`);
-    const remainingMinutes = differenceInMinutes(endTime, now);
+    const endTime = new Date(`${task.endDay}`);
+    const days = differenceInDays(endTime, now);
 
-    if (remainingMinutes < 0) {
+    if (days < 0) {
       return 'Overdue';
     }
-
-    const days = Math.floor(remainingMinutes / 1440);
-    const hours = Math.floor((remainingMinutes % 1440) / 60);
-
-    if (days < 1) {
-      return `${hours} hours left`;
+    if (days === 0) {
+      return 'Today';
     }
 
     return `${days} days`;
