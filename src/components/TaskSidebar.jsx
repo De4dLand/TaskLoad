@@ -78,7 +78,7 @@ const TaskSidebar = ({ open, onClose, onTasksChange = () => { } }) => {
     try {
       const token = localStorage.getItem('token');
       const response = await fetch(`http://localhost:3000/api/tasks/${taskId}`, {
-        method: 'PATCH',
+        method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
