@@ -371,7 +371,7 @@ const TaskManager = ({ onTasksChange }) => {
                         label="Start Day"
                         type="date"
                         name="startDay"
-                        value={format(new Date(editingTask.startDay), 'yyyy-MM-dd')}
+                        value={editingTask?.startDay}
                         onChange={handleEditInputChange}
                         margin="normal"
                         InputLabelProps={{
@@ -397,7 +397,7 @@ const TaskManager = ({ onTasksChange }) => {
                         label="End Day"
                         type="date"
                         name="endDay"
-                        value={format(new Date(editingTask.endDay), 'yyyy-MM-dd')}
+                        value={editingTask?.endDay}
                         onChange={handleEditInputChange}
                         margin="normal"
                         InputLabelProps={{
